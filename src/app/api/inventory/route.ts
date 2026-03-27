@@ -18,24 +18,39 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
     const where: Prisma.InventoryItemWhereInput = { system }
 
+    // Search across multiple fields
     if (search) {
       where.OR = [
-        { genericItemNumber: { contains: search } },
-        { genericItemDescription: { contains: search } },
-        { tradeItemNumber: { contains: search } },
-        { customerItemNumber: { contains: search } },
+        { genericItemNumber: { contains: search, mode: 'insensitive' } },
+        { genericItemDescription: { contains: search, mode: 'insensitive' } },
+        { tradeItemNumber: { contains: search, mode: 'insensitive' } },
+        { customerItemNumber: { contains: search, mode: 'insensitive' } },
       ]
     }
 
+    // Category filters
     switch (category) {
-      case 'expired': where.daysToExpire = { lte: 0 }; break
-      case 'expiring': where.daysToExpire = { gt: 0, lte: 90 }; break
-      case 'hold': where.holdQty = { gt: 0 }; break
-      case 'life_saving': where.isLifeSaving = true; break
-      case 'narcotic': where.isNarcotic = true; break
-      case 'vaccine': where.isVaccine = true; break
+      case 'expired':
+        where.daysToExpire = { lte: 0 }
+        break
+      case 'expiring':
+        where.daysToExpire = { gt: 0, lte: 90 }
+        break
+      case 'hold':
+        where.holdQty = { gt: 0 }
+        break
+      case 'life_saving':
+        where.isLifeSaving = true
+        break
+      case 'narcotic':
+        where.isNarcotic = true
+        break
+      case 'vaccine':
+        where.isVaccine = true
+        break
     }
 
+    // Sorting
     const orderBy: any = {}
     orderBy[sortBy] = sortOrder
 

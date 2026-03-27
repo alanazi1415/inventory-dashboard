@@ -8,8 +8,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, ChevronLeft, ChevronRight, Heart, Ban, AlertTriangle, Syringe } from "lucide-react"
 
-interface InventoryItem { id: string; genericItemNumber: string | null; genericItemDescription: string | null; customerItemNumber: string | null; totalQty: number; availableQty: number; holdQty: number; expiryDate: string | null; daysToExpire: number; isLifeSaving: boolean; isNarcotic: boolean; isVaccine: boolean }
-interface InventoryTableProps { system: 'hoz' | 'mwsal'; category?: string }
+interface InventoryItem {
+  id: string
+  genericItemNumber: string | null
+  genericItemDescription: string | null
+  tradeItemNumber: string | null
+  customerItemNumber: string | null
+  totalQty: number
+  availableQty: number
+  holdQty: number
+  expiryDate: string | null
+  daysToExpire: number
+  isLifeSaving: boolean
+  isNarcotic: boolean
+  isVaccine: boolean
+}
+
+interface InventoryTableProps {
+  system: 'hoz' | 'mwsal'
+  category?: string
+}
 
 export function InventoryTable({ system, category = 'all' }: InventoryTableProps) {
   const [items, setItems] = useState<InventoryItem[]>([])
@@ -20,26 +38,42 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
   const [sortBy, setSortBy] = useState('daysToExpire')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
-  useEffect(() => { fetchItems() }, [system, category, page, sortBy, sortOrder])
+  useEffect(() => {
+    fetchItems()
+  }, [system, category, page, sortBy, sortOrder])
 
   const fetchItems = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ system, category, page: page.toString(), limit: '20', search, sortBy, sortOrder })
+      const params = new URLSearchParams({
+        system,
+        category,
+        page: page.toString(),
+        limit: '20',
+        search,
+        sortBy,
+        sortOrder
+      })
       const res = await fetch(`/api/inventory?${params}`)
       const data = await res.json()
-      setItems(data.items || []); setTotalPages(data.pagination?.totalPages || 1)
+      setItems(data.items || [])
+      setTotalPages(data.pagination?.totalPages || 1)
     } catch { } finally { setLoading(false) }
   }
 
-  const handleSearch = () => { setPage(1); fetchItems() }
+  const handleSearch = () => {
+    setPage(1)
+    fetchItems()
+  }
+
   const getExpiryBadge = (days: number) => {
     if (days <= 0) return <Badge variant="destructive">منتهي</Badge>
     if (days <= 30) return <Badge className="bg-red-500 text-white">خلال {days} يوم</Badge>
     if (days <= 90) return <Badge className="bg-orange-500 text-white">خلال {days} يوم</Badge>
-    if (days <= 180) return <Badge className="bg-yellow-500 text-white">خلال {Math.floor(days/30)} شهر</Badge>
+    if (days <= 180) return <Badge className="bg-yellow-500 text-white">خلال {Math.floor(days / 30)} شهر</Badge>
     return <Badge className="bg-green-500 text-white">سليم</Badge>
   }
+
   const getItemBadges = (item: InventoryItem) => {
     const badges = []
     if (item.isLifeSaving) badges.push(<span key="l" title="منقذ للحياة"><Heart className="w-4 h-4 text-pink-500" /></span>)
@@ -72,7 +106,13 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
           </div>
         </CardTitle>
         <div className="flex gap-2 mt-4 flex-wrap">
-          <Input placeholder="بحث برقم البند أو الوصف..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} className="max-w-sm" />
+          <Input
+            placeholder="بحث برقم البند (نوبكو / وزاري / تريد كود) أو الوصف..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="max-w-md"
+          />
           <Button onClick={handleSearch}><Search className="w-4 h-4 ml-2" />بحث</Button>
         </div>
       </CardHeader>
@@ -81,9 +121,10 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>رقم البند</TableHead>
+                <TableHead>رقم نوبكو</TableHead>
                 <TableHead>الوصف</TableHead>
                 <TableHead>رقم الوزاري</TableHead>
+                <TableHead>تريد كود</TableHead>
                 <TableHead>الكمية</TableHead>
                 <TableHead>المتاحة</TableHead>
                 <TableHead>Hold</TableHead>
@@ -94,18 +135,31 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8">جاري التحميل...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8">جاري التحميل...</TableCell></TableRow>
               ) : items.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-gray-500">لا توجد بيانات</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-gray-500">لا توجد بيانات</TableCell></TableRow>
               ) : (
                 items.map((item) => (
                   <TableRow key={item.id} className={item.daysToExpire <= 0 ? "bg-red-50" : item.daysToExpire <= 90 ? "bg-orange-50" : ""}>
-                    <TableCell className="font-mono text-sm"><div className="flex items-center gap-1">{getItemBadges(item)}{item.genericItemNumber}</div></TableCell>
+                    <TableCell className="font-mono text-sm">
+                      <div className="flex items-center gap-1">
+                        {getItemBadges(item)}
+                        {item.genericItemNumber}
+                      </div>
+                    </TableCell>
                     <TableCell className="max-w-xs truncate">{item.genericItemDescription}</TableCell>
-                    <TableCell>{item.customerItemNumber}</TableCell>
+                    <TableCell className="font-mono text-sm">{item.customerItemNumber}</TableCell>
+                    <TableCell className="font-mono text-sm">{item.tradeItemNumber}</TableCell>
                     <TableCell>{item.totalQty.toLocaleString('ar-SA')}</TableCell>
                     <TableCell>{item.availableQty.toLocaleString('ar-SA')}</TableCell>
-                    <TableCell>{item.holdQty > 0 && <div className="flex items-center gap-1"><AlertTriangle className="w-4 h-4 text-yellow-500" />{item.holdQty.toLocaleString('ar-SA')}</div>}</TableCell>
+                    <TableCell>
+                      {item.holdQty > 0 && (
+                        <div className="flex items-center gap-1">
+                          <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                          {item.holdQty.toLocaleString('ar-SA')}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>{item.expiryDate}</TableCell>
                     <TableCell>{Math.round(item.daysToExpire)}</TableCell>
                     <TableCell>{getExpiryBadge(item.daysToExpire)}</TableCell>

@@ -11,23 +11,37 @@ function parseExcelDate(value: any): Date | null {
     return new Date(d.getTime() + value * 24 * 60 * 60 * 1000)
   }
   if (typeof value === 'string') {
+    // Try different date formats
+    const formats = [
+      /^(\d{4})-(\d{2})-(\d{2})$/, // 2026-10-10
+      /^(\d{2})\/(\d{2})\/(\d{4})$/, // 10/10/2026
+    ]
     const parsed = new Date(value)
     if (!isNaN(parsed.getTime())) return parsed
   }
   return null
 }
 
-function calculateDays(expiryStr: string | null, excelDays: any): number {
-  if (excelDays !== undefined && excelDays !== null && excelDays !== '') {
-    const d = parseFloat(excelDays)
-    if (!isNaN(d) && d > -365 && d < 3650) return d
-  }
-  if (!expiryStr) return 999
-  const expiry = parseExcelDate(expiryStr)
+function calculateDaysFromBBD(bbd: any): number {
+  if (!bbd) return 999
+  
+  const expiry = parseExcelDate(bbd)
   if (!expiry) return 999
+  
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  
+  const diffTime = expiry.getTime() - today.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  return diffDays
+}
+
+function formatDate(bbd: any): string | null {
+  if (!bbd) return null
+  const date = parseExcelDate(bbd)
+  if (!date) return bbd?.toString() || null
+  return date.toISOString().split('T')[0]
 }
 
 async function parseExcel(buffer: Buffer) {
@@ -66,42 +80,78 @@ export async function POST(request: NextRequest) {
     let recordsCount = 0
 
     console.log('Upload started:', { system, fileName: file.name, rows: (data as any[]).length })
+    console.log('Sample row:', (data as any[])[0])
 
     if (system === 'hoz' || system === 'mwsal') {
       // Delete old data
       await db.inventoryItem.deleteMany({ where: { system } })
 
-      // Get special items
+      // Get special items lists
       const [lifeSaving, narcotic, vaccine] = await Promise.all([
         db.lifeSavingItem.findMany().catch(() => []),
         db.narcoticItem.findMany().catch(() => []),
         db.vaccineItem.findMany().catch(() => [])
       ])
 
-      const lsSet = new Set(lifeSaving.map(i => i.itemNumber))
-      const nSet = new Set(narcotic.map(i => i.itemNumber))
-      const vSet = new Set(vaccine.map(i => i.itemNumber))
+      // Create sets for quick lookup - check both Generic and Customer codes
+      const lsGenericSet = new Set(lifeSaving.map(i => i.itemNumber).filter(Boolean))
+      const lsCustomerSet = new Set(lifeSaving.map(i => i.customerCode).filter(Boolean))
+      const nGenericSet = new Set(narcotic.map(i => i.itemNumber).filter(Boolean))
+      const nCustomerSet = new Set(narcotic.map(i => i.customerCode).filter(Boolean))
+      const vGenericSet = new Set(vaccine.map(i => i.itemNumber).filter(Boolean))
+      const vCustomerSet = new Set(vaccine.map(i => i.customerCode).filter(Boolean))
 
       const items = (data as any[]).map(row => {
-        const gen = row['Generic Item Number']?.toString() || ''
-        const trade = row['Trade Item Number']?.toString() || ''
-        const cust = row['Customer Item Number']?.toString() || ''
-        const expiryStr = row['Expiry Date']?.toString() || null
+        // Get values with multiple possible column names
+        const genericNum = row['Generic Item Number']?.toString() || ''
+        const tradeNum = row['Trade Item Number']?.toString() || ''
+        const customerCode = row['Customer Item Code']?.toString() || 
+                            row['Customer Item Number']?.toString() || ''
+        
+        // Get quantities
+        const totalQty = parseFloat(row['Total Qty']) || 0
+        const availQty = parseFloat(row['Avail Qty'] || row['Available Qty']) || 0
+        
+        // Handle Hold - can be YES/NO string or numeric quantity
+        const holdValue = row['Hold']
+        let holdQty = 0
+        let hasHold = false
+        if (typeof holdValue === 'string') {
+          hasHold = holdValue.toUpperCase() === 'YES'
+          holdQty = hasHold ? totalQty - availQty : 0
+        } else {
+          holdQty = parseFloat(holdValue) || parseFloat(row['Hold Qty']) || 0
+          hasHold = holdQty > 0
+        }
+
+        // Get expiry date (BBD = Best Before Date)
+        const bbd = row['BBD'] || row['Expiry Date']
+        const expiryDate = formatDate(bbd)
+        const daysToExpire = calculateDaysFromBBD(bbd)
+
+        // Check if life saving / narcotic / vaccine (check both generic and customer codes)
+        const isLifeSaving = lsGenericSet.has(genericNum) || lsCustomerSet.has(customerCode) ||
+                            lsGenericSet.has(tradeNum)
+        const isNarcotic = nGenericSet.has(genericNum) || nCustomerSet.has(customerCode) ||
+                          nGenericSet.has(tradeNum)
+        const isVaccine = vGenericSet.has(genericNum) || vCustomerSet.has(customerCode) ||
+                         vGenericSet.has(tradeNum)
 
         return {
           system,
-          genericItemNumber: gen || null,
-          genericItemDescription: row['Generic Item Description']?.toString() || null,
-          tradeItemNumber: trade || null,
-          customerItemNumber: cust || null,
-          totalQty: parseFloat(row['Total Qty']) || 0,
-          holdQty: parseFloat(row['Hold Qty']) || 0,
-          availableQty: parseFloat(row['Available Qty']) || 0,
-          expiryDate: expiryStr,
-          daysToExpire: calculateDays(expiryStr, row['Days to Expire']),
-          isLifeSaving: lsSet.has(gen) || lsSet.has(trade) || lsSet.has(cust),
-          isNarcotic: nSet.has(gen) || nSet.has(trade) || nSet.has(cust),
-          isVaccine: vSet.has(gen) || vSet.has(trade) || vSet.has(cust),
+          genericItemNumber: genericNum || null,
+          genericItemDescription: row['Generic Item description']?.toString() || 
+                                  row['Generic Item Description']?.toString() || null,
+          tradeItemNumber: tradeNum || null,
+          customerItemNumber: customerCode || null,
+          totalQty,
+          holdQty,
+          availableQty: availQty,
+          expiryDate,
+          daysToExpire,
+          isLifeSaving,
+          isNarcotic,
+          isVaccine,
         }
       })
 
@@ -115,13 +165,18 @@ export async function POST(request: NextRequest) {
 
     } else if (system === 'life_saving') {
       await db.lifeSavingItem.deleteMany().catch(() => {})
+      
       const items = (data as any[])
-        .map(r => ({
-          itemNumber: r['Generic Item Number']?.toString() || 
-                     r['Item Number']?.toString() || 
-                     Object.values(r)[0]?.toString()
-        }))
-        .filter(i => i.itemNumber)
+        .map(row => {
+          const genericNum = row['Generic Item Number']?.toString()
+          const customerCode = row['Customer Item Code']?.toString() || 
+                              row['Customer Item Number']?.toString()
+          return {
+            itemNumber: genericNum || null,
+            customerCode: customerCode || null,
+          }
+        })
+        .filter(i => i.itemNumber || i.customerCode)
       
       if (items.length > 0) {
         await db.lifeSavingItem.createMany({ data: items })
@@ -130,13 +185,18 @@ export async function POST(request: NextRequest) {
 
     } else if (system === 'narcotic') {
       await db.narcoticItem.deleteMany().catch(() => {})
+      
       const items = (data as any[])
-        .map(r => ({
-          itemNumber: r['Generic Item Number']?.toString() || 
-                     r['Item Number']?.toString() || 
-                     Object.values(r)[0]?.toString()
-        }))
-        .filter(i => i.itemNumber)
+        .map(row => {
+          const genericNum = row['Generic Item Number']?.toString()
+          const customerCode = row['Customer Item Code']?.toString() || 
+                              row['Customer Item Number']?.toString()
+          return {
+            itemNumber: genericNum || null,
+            customerCode: customerCode || null,
+          }
+        })
+        .filter(i => i.itemNumber || i.customerCode)
       
       if (items.length > 0) {
         await db.narcoticItem.createMany({ data: items })
@@ -145,13 +205,18 @@ export async function POST(request: NextRequest) {
 
     } else if (system === 'vaccine') {
       await db.vaccineItem.deleteMany().catch(() => {})
+      
       const items = (data as any[])
-        .map(r => ({
-          itemNumber: r['Generic Item Number']?.toString() || 
-                     r['Item Number']?.toString() || 
-                     Object.values(r)[0]?.toString()
-        }))
-        .filter(i => i.itemNumber)
+        .map(row => {
+          const genericNum = row['Generic Item Number']?.toString()
+          const customerCode = row['Customer Item Code']?.toString() || 
+                              row['Customer Item Number']?.toString()
+          return {
+            itemNumber: genericNum || null,
+            customerCode: customerCode || null,
+          }
+        })
+        .filter(i => i.itemNumber || i.customerCode)
       
       if (items.length > 0) {
         await db.vaccineItem.createMany({ data: items })
