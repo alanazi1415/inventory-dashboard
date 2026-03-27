@@ -86,46 +86,29 @@ export async function POST(request: NextRequest) {
         db.vaccineItem.findMany().catch(() => [])
       ])
 
-      // Create lookup maps for special items
-      const lifeSavingSet = new Set<string>()
-      const narcoticSet = new Set<string>()
-      const vaccineSet = new Set<string>()
-      
-      lifeSaving.forEach(item => {
-        if (item.itemNumber) lifeSavingSet.add(item.itemNumber)
-        if (item.customerCode) lifeSavingSet.add(item.customerCode)
-      })
-      narcotic.forEach(item => {
-        if (item.itemNumber) narcoticSet.add(item.itemNumber)
-        if (item.customerCode) narcoticSet.add(item.customerCode)
-      })
-      vaccine.forEach(item => {
-        if (item.itemNumber) vaccineSet.add(item.itemNumber)
-        if (item.customerCode) vaccineSet.add(item.customerCode)
-      })
+      // Create lookup sets
+      const lifeSavingSet = new Set(lifeSaving.map(i => i.itemNumber))
+      const narcoticSet = new Set(narcotic.map(i => i.itemNumber))
+      const vaccineSet = new Set(vaccine.map(i => i.itemNumber))
 
       const items = (data as any[]).map(row => {
-        // Get item numbers
         const genericNum = safeString(row['Generic Item Number'])
         const tradeNum = safeString(row['Trade Item Number'])
         const customerCode = safeString(row['Customer Item Code'])
         
-        // Get quantities
         const totalQty = parseFloat(row['Total Qty']) || 0
         const availQty = parseFloat(row['Avail Qty']) || 0
         
-        // Get Hold info
         const holdValue = safeString(row['Hold'])
         const holdType = safeString(row['Hold Type'])
         const isOnHold = holdValue?.toUpperCase() === 'YES'
         const holdQty = isOnHold ? (totalQty - availQty > 0 ? totalQty - availQty : totalQty) : 0
 
-        // Get expiry date
         const bbd = row['BBD']
         const expiryDate = formatDate(bbd)
         const daysToExpire = calculateDaysFromBBD(bbd)
 
-        // Check special categories
+        // Check if item is in special lists (by generic number or customer code)
         const isLifeSaving = lifeSavingSet.has(genericNum || '') || 
                             lifeSavingSet.has(customerCode || '') ||
                             lifeSavingSet.has(tradeNum || '')
@@ -164,113 +147,117 @@ export async function POST(request: NextRequest) {
       recordsCount = items.length
 
     } else if (system === 'life_saving') {
-      // Delete old life saving items
-      await db.lifeSavingItem.deleteMany().catch(() => {})
+      await db.lifeSavingItem.deleteMany()
       
-      const items = (data as any[])
-        .map(row => {
-          const genericNum = safeString(row['Generic Item Number'])
-          const customerCode = safeString(row['Customer Item Code'])
-          
-          if (!genericNum && !customerCode) return null
-          
-          return {
-            itemNumber: genericNum,
-            customerCode: customerCode,
-          }
-        })
-        .filter(Boolean) as { itemNumber: string | null; customerCode: string | null }[]
+      const rows = data as any[]
+      const insertedItems = new Set<string>()
       
-      if (items.length > 0) {
-        await db.lifeSavingItem.createMany({ data: items })
+      for (const row of rows) {
+        const genericNum = safeString(row['Generic Item Number'])
+        const customerCode = safeString(row['Customer Item Code'])
+        
+        // Store both Generic Item Number and Customer Code
+        if (genericNum && !insertedItems.has(genericNum)) {
+          await db.lifeSavingItem.create({ data: { itemNumber: genericNum } })
+          insertedItems.add(genericNum)
+          recordsCount++
+        }
+        if (customerCode && !insertedItems.has(customerCode)) {
+          await db.lifeSavingItem.create({ data: { itemNumber: customerCode } })
+          insertedItems.add(customerCode)
+        }
       }
-      recordsCount = items.length
 
-      // Update existing inventory items
-      const itemNumbers = items.filter(i => i.itemNumber).map(i => i.itemNumber)
-      const customerCodes = items.filter(i => i.customerCode).map(i => i.customerCode)
-      
-      // Mark matching items as life saving
-      await db.inventoryItem.updateMany({
-        where: {
-          OR: [
-            { genericItemNumber: { in: itemNumbers as string[] } },
-            { customerItemNumber: { in: customerCodes as string[] } },
-            { tradeItemNumber: { in: itemNumbers as string[] } }
-          ]
-        },
-        data: { isLifeSaving: true }
-      })
+      // Update matching inventory items
+      const allNumbers = Array.from(insertedItems)
+      if (allNumbers.length > 0) {
+        await db.inventoryItem.updateMany({
+          where: {
+            OR: [
+              { genericItemNumber: { in: allNumbers } },
+              { customerItemNumber: { in: allNumbers } },
+              { tradeItemNumber: { in: allNumbers } }
+            ]
+          },
+          data: { isLifeSaving: true }
+        })
+      }
 
     } else if (system === 'narcotic') {
-      await db.narcoticItem.deleteMany().catch(() => {})
+      await db.narcoticItem.deleteMany()
       
-      const items = (data as any[])
-        .map(row => {
-          const genericNum = safeString(row['Generic Item Number'])
-          const customerCode = safeString(row['Customer Item Code'])
-          if (!genericNum && !customerCode) return null
-          return { itemNumber: genericNum, customerCode: customerCode }
-        })
-        .filter(Boolean) as { itemNumber: string | null; customerCode: string | null }[]
+      const rows = data as any[]
+      const insertedItems = new Set<string>()
       
-      if (items.length > 0) {
-        await db.narcoticItem.createMany({ data: items })
+      for (const row of rows) {
+        const genericNum = safeString(row['Generic Item Number'])
+        const customerCode = safeString(row['Customer Item Code'])
+        
+        if (genericNum && !insertedItems.has(genericNum)) {
+          await db.narcoticItem.create({ data: { itemNumber: genericNum } })
+          insertedItems.add(genericNum)
+          recordsCount++
+        }
+        if (customerCode && !insertedItems.has(customerCode)) {
+          await db.narcoticItem.create({ data: { itemNumber: customerCode } })
+          insertedItems.add(customerCode)
+        }
       }
-      recordsCount = items.length
 
-      const itemNumbers = items.filter(i => i.itemNumber).map(i => i.itemNumber)
-      const customerCodes = items.filter(i => i.customerCode).map(i => i.customerCode)
-      
-      await db.inventoryItem.updateMany({
-        where: {
-          OR: [
-            { genericItemNumber: { in: itemNumbers as string[] } },
-            { customerItemNumber: { in: customerCodes as string[] } },
-            { tradeItemNumber: { in: itemNumbers as string[] } }
-          ]
-        },
-        data: { isNarcotic: true }
-      })
+      const allNumbers = Array.from(insertedItems)
+      if (allNumbers.length > 0) {
+        await db.inventoryItem.updateMany({
+          where: {
+            OR: [
+              { genericItemNumber: { in: allNumbers } },
+              { customerItemNumber: { in: allNumbers } },
+              { tradeItemNumber: { in: allNumbers } }
+            ]
+          },
+          data: { isNarcotic: true }
+        })
+      }
 
     } else if (system === 'vaccine') {
-      await db.vaccineItem.deleteMany().catch(() => {})
+      await db.vaccineItem.deleteMany()
       
-      const items = (data as any[])
-        .map(row => {
-          const genericNum = safeString(row['Generic Item Number'])
-          const customerCode = safeString(row['Customer Item Code'])
-          if (!genericNum && !customerCode) return null
-          return { itemNumber: genericNum, customerCode: customerCode }
-        })
-        .filter(Boolean) as { itemNumber: string | null; customerCode: string | null }[]
+      const rows = data as any[]
+      const insertedItems = new Set<string>()
       
-      if (items.length > 0) {
-        await db.vaccineItem.createMany({ data: items })
+      for (const row of rows) {
+        const genericNum = safeString(row['Generic Item Number'])
+        const customerCode = safeString(row['Customer Item Code'])
+        
+        if (genericNum && !insertedItems.has(genericNum)) {
+          await db.vaccineItem.create({ data: { itemNumber: genericNum } })
+          insertedItems.add(genericNum)
+          recordsCount++
+        }
+        if (customerCode && !insertedItems.has(customerCode)) {
+          await db.vaccineItem.create({ data: { itemNumber: customerCode } })
+          insertedItems.add(customerCode)
+        }
       }
-      recordsCount = items.length
 
-      const itemNumbers = items.filter(i => i.itemNumber).map(i => i.itemNumber)
-      const customerCodes = items.filter(i => i.customerCode).map(i => i.customerCode)
-      
-      await db.inventoryItem.updateMany({
-        where: {
-          OR: [
-            { genericItemNumber: { in: itemNumbers as string[] } },
-            { customerItemNumber: { in: customerCodes as string[] } },
-            { tradeItemNumber: { in: itemNumbers as string[] } }
-          ]
-        },
-        data: { isVaccine: true }
-      })
+      const allNumbers = Array.from(insertedItems)
+      if (allNumbers.length > 0) {
+        await db.inventoryItem.updateMany({
+          where: {
+            OR: [
+              { genericItemNumber: { in: allNumbers } },
+              { customerItemNumber: { in: allNumbers } },
+              { tradeItemNumber: { in: allNumbers } }
+            ]
+          },
+          data: { isVaccine: true }
+        })
+      }
     }
 
-    // Log the upload
-    try {
-      await db.uploadLog.create({ 
-        data: { fileName: file.name, system, recordsCount } 
-      })
-    } catch (e) {}
+    // Log upload
+    await db.uploadLog.create({ 
+      data: { fileName: file.name, system, recordsCount } 
+    }).catch(() => {})
 
     console.log('Upload completed:', { system, recordsCount })
 

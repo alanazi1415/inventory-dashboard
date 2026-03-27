@@ -17,11 +17,11 @@ export async function GET() {
     const hozItems = await db.inventoryItem.count({ where: { system: 'hoz' } }).catch(() => 0)
     const mwsalItems = await db.inventoryItem.count({ where: { system: 'mwsal' } }).catch(() => 0)
     
-    // Hold items with details
+    // Hold items
     const hozHoldItems = await db.inventoryItem.count({ where: { system: 'hoz', holdQty: { gt: 0 } } }).catch(() => 0)
     const mwsalHoldItems = await db.inventoryItem.count({ where: { system: 'mwsal', holdQty: { gt: 0 } } }).catch(() => 0)
     
-    // Hold Types distribution for each system
+    // Hold Types
     const hozHoldTypes = await db.inventoryItem.groupBy({
       by: ['holdType'],
       where: { system: 'hoz', holdQty: { gt: 0 } },
@@ -36,7 +36,7 @@ export async function GET() {
       _sum: { holdQty: true }
     }).catch(() => [])
     
-    // Special items counts
+    // Special items counts from lists
     const lifeSavingCount = await db.lifeSavingItem.count().catch(() => 0)
     const narcoticCount = await db.narcoticItem.count().catch(() => 0)
     const vaccineCount = await db.vaccineItem.count().catch(() => 0)
@@ -45,14 +45,14 @@ export async function GET() {
     const lifeSavingInHoz = await db.inventoryItem.count({ where: { system: 'hoz', isLifeSaving: true } }).catch(() => 0)
     const lifeSavingInMwsal = await db.inventoryItem.count({ where: { system: 'mwsal', isLifeSaving: true } }).catch(() => 0)
     
-    // Last upload
-    const lastUpload = await db.uploadLog.findFirst({ orderBy: { createdAt: 'desc' } }).catch(() => null)
-
     // Expiry stats
     const hozExpired = await db.inventoryItem.count({ where: { system: 'hoz', daysToExpire: { lte: 0 } } }).catch(() => 0)
     const mwsalExpired = await db.inventoryItem.count({ where: { system: 'mwsal', daysToExpire: { lte: 0 } } }).catch(() => 0)
     const hozExpiring = await db.inventoryItem.count({ where: { system: 'hoz', daysToExpire: { gt: 0, lte: 90 } } }).catch(() => 0)
     const mwsalExpiring = await db.inventoryItem.count({ where: { system: 'mwsal', daysToExpire: { gt: 0, lte: 90 } } }).catch(() => 0)
+
+    // Last upload
+    const lastUpload = await db.uploadLog.findFirst({ orderBy: { createdAt: 'desc' } }).catch(() => null)
 
     const result = {
       totalVisits,
@@ -88,7 +88,6 @@ export async function GET() {
       } : null
     }
     
-    console.log('Admin stats result:', result)
     return NextResponse.json(result)
     
   } catch (error: any) {

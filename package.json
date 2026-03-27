@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "prisma generate && prisma db push --accept-data-loss && next build",
     "start": "next start",
-    "postinstall": "prisma generate",
-    "db:push": "prisma db push --accept-data-loss"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "6.19.2",

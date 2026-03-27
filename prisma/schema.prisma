@@ -32,38 +32,30 @@ model InventoryItem {
   @@index([genericItemNumber])
   @@index([customerItemNumber])
   @@index([tradeItemNumber])
-  @@index([hold])
-  @@index([holdType])
 }
 
 model LifeSavingItem {
   id          String   @id @default(cuid())
-  itemNumber  String?
-  customerCode String?
+  itemNumber  String
   createdAt   DateTime @default(now())
   
   @@index([itemNumber])
-  @@index([customerCode])
 }
 
 model NarcoticItem {
   id          String   @id @default(cuid())
-  itemNumber  String?
-  customerCode String?
+  itemNumber  String
   createdAt   DateTime @default(now())
   
   @@index([itemNumber])
-  @@index([customerCode])
 }
 
 model VaccineItem {
   id          String   @id @default(cuid())
-  itemNumber  String?
-  customerCode String?
+  itemNumber  String
   createdAt   DateTime @default(now())
   
   @@index([itemNumber])
-  @@index([customerCode])
 }
 
 model VisitorLog {
