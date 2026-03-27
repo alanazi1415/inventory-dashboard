@@ -1,28 +1,70 @@
-﻿generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
 model InventoryItem {
-  id String @id @default(cuid())
-  system String
-  genericItemNumber String?
+  id                     String   @id @default(cuid())
+  system                 String
+  genericItemNumber      String?
   genericItemDescription String?
-  tradeItemNumber String?
-  customerItemNumber String?
-  totalQty Float @default(0)
-  holdQty Float @default(0)
-  availableQty Float @default(0)
-  expiryDate String?
-  daysToExpire Float @default(0)
-  isLifeSaving Boolean @default(false)
-  isNarcotic Boolean @default(false)
-  isVaccine Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([system]) @@index([daysToExpire])
+  tradeItemNumber        String?
+  customerItemNumber     String?
+  totalQty               Float    @default(0)
+  holdQty                Float    @default(0)
+  availableQty           Float    @default(0)
+  expiryDate             String?
+  daysToExpire           Float    @default(0)
+  isLifeSaving           Boolean  @default(false)
+  isNarcotic             Boolean  @default(false)
+  isVaccine              Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([system])
+  @@index([daysToExpire])
 }
-model LifeSavingItem { id String @id @default(cuid()); itemNumber String @unique; createdAt DateTime @default(now()) }
-model NarcoticItem { id String @id @default(cuid()); itemNumber String @unique; createdAt DateTime @default(now()) }
-model VaccineItem { id String @id @default(cuid()); itemNumber String @unique; createdAt DateTime @default(now()) }
-model VisitorLog { id String @id @default(cuid()); page String; system String?; createdAt DateTime @default(now()) }
-model UploadLog { id String @id @default(cuid()); fileName String; system String; recordsCount Int @default(0); createdAt DateTime @default(now()) }
-model AdminSession { id String @id @default(cuid()); token String @unique; createdAt DateTime @default(now()); expiresAt DateTime }
+
+model LifeSavingItem {
+  id          String   @id @default(cuid())
+  itemNumber  String   @unique
+  createdAt   DateTime @default(now())
+}
+
+model NarcoticItem {
+  id          String   @id @default(cuid())
+  itemNumber  String   @unique
+  createdAt   DateTime @default(now())
+}
+
+model VaccineItem {
+  id          String   @id @default(cuid())
+  itemNumber  String   @unique
+  createdAt   DateTime @default(now())
+}
+
+model VisitorLog {
+  id        String   @id @default(cuid())
+  page      String
+  system    String?
+  createdAt DateTime @default(now())
+}
+
+model UploadLog {
+  id           String   @id @default(cuid())
+  fileName     String
+  system       String
+  recordsCount Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
