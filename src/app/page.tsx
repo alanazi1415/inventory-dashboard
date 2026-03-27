@@ -1,4 +1,5 @@
-﻿'use client'
+'use client'
+
 import { useState, useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 import { WelcomeDialog } from '@/components/dashboard/WelcomeDialog'
@@ -29,8 +30,10 @@ export default function HomePage() {
   const fetchStats = async () => {
     if (!selectedSystem) return
     setLoading(true)
-    try { const r = await fetch(/api/stats?system={selectedSystem}); setStats(await r.json()) }
-    catch { } finally { setLoading(false) }
+    try {
+      const r = await fetch(`/api/stats?system=${selectedSystem}`)
+      setStats(await r.json())
+    } catch { } finally { setLoading(false) }
   }
 
   const handleSystemSelect = (s: 'hoz' | 'mwsal') => { setSelectedSystem(s); setCurrentPage('home') }
@@ -62,7 +65,7 @@ export default function HomePage() {
                 <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0 shadow-lg">
                   <CardContent className="p-3 flex items-center gap-3"><Calendar className="w-5 h-5" /><div className="text-sm"><p className="opacity-90">{formatDate(time)}</p><p className="font-bold font-mono text-lg">{formatTime(time)}</p></div></CardContent>
                 </Card>
-                <Button onClick={fetchStats} disabled={loading} variant="outline"><RefreshCw className={w-4 h-4 ml-2 {loading ? 'animate-spin' : ''}} />تحديث</Button>
+                <Button onClick={fetchStats} disabled={loading} variant="outline"><RefreshCw className={`w-4 h-4 ml-2 ${loading ? 'animate-spin' : ''}`} />تحديث</Button>
               </div>
             </div>
             {loading ? <div className="flex items-center justify-center min-h-64"><p className="text-gray-500">جاري التحميل...</p></div> : stats ? (

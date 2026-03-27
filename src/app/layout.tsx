@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={${"$"}{font.variable} font-sans antialiased bg-background text-foreground}>
+      <body className={`${font.variable} font-sans antialiased bg-background text-foreground`}>
         <div className="min-h-screen flex flex-col">
           <main className="flex-1">{children}</main>
           <footer className="py-3 px-6 text-center text-sm text-muted-foreground bg-muted/50 border-t w-full">

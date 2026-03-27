@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import * as xlsx from 'xlsx'
 
@@ -95,6 +95,6 @@ export async function POST(request: NextRequest) {
     }
 
     await db.uploadLog.create({ data: { fileName: file.name, system, recordsCount } })
-    return NextResponse.json({ success: true, message: تم رفع {recordsCount} سجل بنجاح, recordsCount })
+    return NextResponse.json({ success: true, message: `تم رفع ${recordsCount} سجل بنجاح`, recordsCount })
   } catch (e: any) { return NextResponse.json({ error: 'حدث خطأ', details: e.message }, { status: 500 }) }
 }
