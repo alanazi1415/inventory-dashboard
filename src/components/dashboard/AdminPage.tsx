@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileSpreadsheet, RefreshCw, Users, Eye, Database, Heart, Syringe, Ban } from "lucide-react"
+import { Upload, FileSpreadsheet, RefreshCw, Users, Eye, Database, Heart, Syringe, Ban, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface AdminPageProps { onLogout: () => void }
@@ -16,11 +16,11 @@ export function AdminPage({ onLogout }: AdminPageProps) {
   const [uploadLogs, setUploadLogs] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
 
-  // Fetch stats
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/admin/stats')
       const data = await res.json()
+      console.log('Stats fetched:', data)
       setStats(data)
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -119,6 +119,28 @@ export function AdminPage({ onLogout }: AdminPageProps) {
             <div>
               <p className="text-sm text-gray-600">بنود موصول</p>
               <p className="text-2xl font-bold text-orange-600">{stats?.mwsalItems?.toLocaleString('ar-SA') || 0}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Hold Items */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="bg-yellow-50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-yellow-600" />
+            <div>
+              <p className="text-sm text-gray-600">بنود هوز عليها Hold</p>
+              <p className="text-xl font-bold text-yellow-600">{stats?.hozHoldItems?.toLocaleString('ar-SA') || 0}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-yellow-50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-yellow-600" />
+            <div>
+              <p className="text-sm text-gray-600">بنود موصول عليها Hold</p>
+              <p className="text-xl font-bold text-yellow-600">{stats?.mwsalHoldItems?.toLocaleString('ar-SA') || 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -243,9 +265,9 @@ export function AdminPage({ onLogout }: AdminPageProps) {
         <CardHeader><CardTitle>تعليمات</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm text-gray-600">
           <p><strong>1.</strong> اختر النظام ثم ارفع ملف Excel</p>
-          <p><strong>2.</strong> أعمدة ملف المخزون المطلوبة: Generic Item Number, BBD (تاريخ الانتهاء), Total Qty, Avail Qty</p>
-          <p><strong>3.</strong> ملف البنود المنقذة/المخدرة/اللقاحات: يحتوي على Generic Item Number و Customer Item Code</p>
-          <p><strong>4.</strong> يتم حساب الأيام المتبقية تلقائياً من عمود BBD</p>
+          <p><strong>2.</strong> أعمدة ملف المخزون: Generic Item Number, BBD (تاريخ الانتهاء), Total Qty, Avail Qty, Hold</p>
+          <p><strong>3.</strong> ملف البنود الخاصة: Generic Item Number و Customer Item Code</p>
+          <p><strong>4.</strong> الأيام المتبقية تحسب تلقائياً من عمود BBD</p>
         </CardContent>
       </Card>
     </div>

@@ -11,11 +11,6 @@ function parseExcelDate(value: any): Date | null {
     return new Date(d.getTime() + value * 24 * 60 * 60 * 1000)
   }
   if (typeof value === 'string') {
-    // Try different date formats
-    const formats = [
-      /^(\d{4})-(\d{2})-(\d{2})$/, // 2026-10-10
-      /^(\d{2})\/(\d{2})\/(\d{4})$/, // 10/10/2026
-    ]
     const parsed = new Date(value)
     if (!isNaN(parsed.getTime())) return parsed
   }
@@ -42,6 +37,11 @@ function formatDate(bbd: any): string | null {
   const date = parseExcelDate(bbd)
   if (!date) return bbd?.toString() || null
   return date.toISOString().split('T')[0]
+}
+
+function safeString(value: any): string | null {
+  if (value === null || value === undefined) return null
+  return String(value)
 }
 
 async function parseExcel(buffer: Buffer) {
@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
     let recordsCount = 0
 
     console.log('Upload started:', { system, fileName: file.name, rows: (data as any[]).length })
-    console.log('Sample row:', (data as any[])[0])
 
     if (system === 'hoz' || system === 'mwsal') {
       // Delete old data
@@ -93,57 +92,66 @@ export async function POST(request: NextRequest) {
         db.vaccineItem.findMany().catch(() => [])
       ])
 
-      // Create sets for quick lookup - check both Generic and Customer codes
-      const lsGenericSet = new Set(lifeSaving.map(i => i.itemNumber).filter(Boolean))
-      const lsCustomerSet = new Set(lifeSaving.map(i => i.customerCode).filter(Boolean))
-      const nGenericSet = new Set(narcotic.map(i => i.itemNumber).filter(Boolean))
-      const nCustomerSet = new Set(narcotic.map(i => i.customerCode).filter(Boolean))
-      const vGenericSet = new Set(vaccine.map(i => i.itemNumber).filter(Boolean))
-      const vCustomerSet = new Set(vaccine.map(i => i.customerCode).filter(Boolean))
+      // Create lookup maps
+      const lifeSavingMap = new Map<string, boolean>()
+      const narcoticMap = new Map<string, boolean>()
+      const vaccineMap = new Map<string, boolean>()
+      
+      lifeSaving.forEach(item => {
+        if (item.itemNumber) lifeSavingMap.set(item.itemNumber, true)
+        if (item.customerCode) lifeSavingMap.set(item.customerCode, true)
+      })
+      narcotic.forEach(item => {
+        if (item.itemNumber) narcoticMap.set(item.itemNumber, true)
+        if (item.customerCode) narcoticMap.set(item.customerCode, true)
+      })
+      vaccine.forEach(item => {
+        if (item.itemNumber) vaccineMap.set(item.itemNumber, true)
+        if (item.customerCode) vaccineMap.set(item.customerCode, true)
+      })
 
       const items = (data as any[]).map(row => {
-        // Get values with multiple possible column names
-        const genericNum = row['Generic Item Number']?.toString() || ''
-        const tradeNum = row['Trade Item Number']?.toString() || ''
-        const customerCode = row['Customer Item Code']?.toString() || 
-                            row['Customer Item Number']?.toString() || ''
+        // Get item numbers
+        const genericNum = safeString(row['Generic Item Number'])
+        const tradeNum = safeString(row['Trade Item Number'])
+        const customerCode = safeString(row['Customer Item Code'] || row['Customer Item Number'])
         
         // Get quantities
         const totalQty = parseFloat(row['Total Qty']) || 0
         const availQty = parseFloat(row['Avail Qty'] || row['Available Qty']) || 0
         
-        // Handle Hold - can be YES/NO string or numeric quantity
+        // Calculate Hold Qty
         const holdValue = row['Hold']
         let holdQty = 0
-        let hasHold = false
-        if (typeof holdValue === 'string') {
-          hasHold = holdValue.toUpperCase() === 'YES'
-          holdQty = hasHold ? totalQty - availQty : 0
+        if (typeof holdValue === 'string' && holdValue.toUpperCase() === 'YES') {
+          holdQty = totalQty - availQty
+          if (holdQty < 0) holdQty = totalQty // Fallback
         } else {
           holdQty = parseFloat(holdValue) || parseFloat(row['Hold Qty']) || 0
-          hasHold = holdQty > 0
         }
 
-        // Get expiry date (BBD = Best Before Date)
+        // Get expiry date
         const bbd = row['BBD'] || row['Expiry Date']
         const expiryDate = formatDate(bbd)
         const daysToExpire = calculateDaysFromBBD(bbd)
 
-        // Check if life saving / narcotic / vaccine (check both generic and customer codes)
-        const isLifeSaving = lsGenericSet.has(genericNum) || lsCustomerSet.has(customerCode) ||
-                            lsGenericSet.has(tradeNum)
-        const isNarcotic = nGenericSet.has(genericNum) || nCustomerSet.has(customerCode) ||
-                          nGenericSet.has(tradeNum)
-        const isVaccine = vGenericSet.has(genericNum) || vCustomerSet.has(customerCode) ||
-                         vGenericSet.has(tradeNum)
+        // Check special categories
+        const isLifeSaving = lifeSavingMap.has(genericNum || '') || 
+                            lifeSavingMap.has(customerCode || '') ||
+                            lifeSavingMap.has(tradeNum || '')
+        const isNarcotic = narcoticMap.has(genericNum || '') || 
+                          narcoticMap.has(customerCode || '') ||
+                          narcoticMap.has(tradeNum || '')
+        const isVaccine = vaccineMap.has(genericNum || '') || 
+                         vaccineMap.has(customerCode || '') ||
+                         vaccineMap.has(tradeNum || '')
 
         return {
           system,
-          genericItemNumber: genericNum || null,
-          genericItemDescription: row['Generic Item description']?.toString() || 
-                                  row['Generic Item Description']?.toString() || null,
-          tradeItemNumber: tradeNum || null,
-          customerItemNumber: customerCode || null,
+          genericItemNumber: genericNum,
+          genericItemDescription: safeString(row['Generic Item description'] || row['Generic Item Description']),
+          tradeItemNumber: tradeNum,
+          customerItemNumber: customerCode,
           totalQty,
           holdQty,
           availableQty: availQty,
@@ -164,22 +172,32 @@ export async function POST(request: NextRequest) {
       recordsCount = items.length
 
     } else if (system === 'life_saving') {
+      // Delete old data
       await db.lifeSavingItem.deleteMany().catch(() => {})
       
       const items = (data as any[])
         .map(row => {
-          const genericNum = row['Generic Item Number']?.toString()
-          const customerCode = row['Customer Item Code']?.toString() || 
-                              row['Customer Item Number']?.toString()
+          const genericNum = safeString(row['Generic Item Number'])
+          const customerCode = safeString(row['Customer Item Code'] || row['Customer Item Number'])
+          
+          if (!genericNum && !customerCode) return null
+          
           return {
-            itemNumber: genericNum || null,
-            customerCode: customerCode || null,
+            itemNumber: genericNum,
+            customerCode: customerCode,
           }
         })
-        .filter(i => i.itemNumber || i.customerCode)
+        .filter(Boolean) as { itemNumber: string; customerCode: string | null }[]
       
       if (items.length > 0) {
-        await db.lifeSavingItem.createMany({ data: items })
+        // Insert one by one to handle duplicates
+        for (const item of items) {
+          try {
+            await db.lifeSavingItem.create({ data: item })
+          } catch (e) {
+            // Skip duplicates
+          }
+        }
       }
       recordsCount = items.length
 
@@ -188,18 +206,24 @@ export async function POST(request: NextRequest) {
       
       const items = (data as any[])
         .map(row => {
-          const genericNum = row['Generic Item Number']?.toString()
-          const customerCode = row['Customer Item Code']?.toString() || 
-                              row['Customer Item Number']?.toString()
+          const genericNum = safeString(row['Generic Item Number'])
+          const customerCode = safeString(row['Customer Item Code'] || row['Customer Item Number'])
+          
+          if (!genericNum && !customerCode) return null
+          
           return {
-            itemNumber: genericNum || null,
-            customerCode: customerCode || null,
+            itemNumber: genericNum,
+            customerCode: customerCode,
           }
         })
-        .filter(i => i.itemNumber || i.customerCode)
+        .filter(Boolean) as { itemNumber: string; customerCode: string | null }[]
       
       if (items.length > 0) {
-        await db.narcoticItem.createMany({ data: items })
+        for (const item of items) {
+          try {
+            await db.narcoticItem.create({ data: item })
+          } catch (e) {}
+        }
       }
       recordsCount = items.length
 
@@ -208,26 +232,34 @@ export async function POST(request: NextRequest) {
       
       const items = (data as any[])
         .map(row => {
-          const genericNum = row['Generic Item Number']?.toString()
-          const customerCode = row['Customer Item Code']?.toString() || 
-                              row['Customer Item Number']?.toString()
+          const genericNum = safeString(row['Generic Item Number'])
+          const customerCode = safeString(row['Customer Item Code'] || row['Customer Item Number'])
+          
+          if (!genericNum && !customerCode) return null
+          
           return {
-            itemNumber: genericNum || null,
-            customerCode: customerCode || null,
+            itemNumber: genericNum,
+            customerCode: customerCode,
           }
         })
-        .filter(i => i.itemNumber || i.customerCode)
+        .filter(Boolean) as { itemNumber: string; customerCode: string | null }[]
       
       if (items.length > 0) {
-        await db.vaccineItem.createMany({ data: items })
+        for (const item of items) {
+          try {
+            await db.vaccineItem.create({ data: item })
+          } catch (e) {}
+        }
       }
       recordsCount = items.length
     }
 
     // Log the upload
-    await db.uploadLog.create({ 
-      data: { fileName: file.name, system, recordsCount } 
-    }).catch(() => {})
+    try {
+      await db.uploadLog.create({ 
+        data: { fileName: file.name, system, recordsCount } 
+      })
+    } catch (e) {}
 
     console.log('Upload completed:', { system, recordsCount })
 

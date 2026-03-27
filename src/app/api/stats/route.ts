@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const system = searchParams.get('system') || 'hoz'
 
+    console.log('Stats API called for system:', system)
+
     const [
       totalItems,
       expiredItems,
@@ -31,15 +33,10 @@ export async function GET(request: NextRequest) {
       _sum: { totalQty: true, availableQty: true, holdQty: true }
     })
 
-    // Expiry distribution
-    const expiryDistribution = {
-      expired: await db.inventoryItem.count({ where: { system, daysToExpire: { lte: 0 } } }),
-      oneMonth: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 0, lte: 30 } } }),
-      threeMonths: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 30, lte: 90 } } }),
-      sixMonths: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 90, lte: 180 } } }),
-      oneYear: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 180, lte: 365 } } }),
-      overYear: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 365 } } }),
-    }
+    console.log('Stats result:', { 
+      totalItems, expiredItems, expiringItems, holdItems, 
+      totalQty: totalQty._sum 
+    })
 
     return NextResponse.json({
       totalItems,
@@ -52,7 +49,6 @@ export async function GET(request: NextRequest) {
       totalQty: totalQty._sum.totalQty || 0,
       availableQty: totalQty._sum.availableQty || 0,
       holdQtySum: totalQty._sum.holdQty || 0,
-      expiryDistribution
     })
   } catch (error: any) {
     console.error('Stats error:', error)
@@ -67,7 +63,6 @@ export async function GET(request: NextRequest) {
       totalQty: 0,
       availableQty: 0,
       holdQtySum: 0,
-      expiryDistribution: { expired: 0, oneMonth: 0, threeMonths: 0, sixMonths: 0, oneYear: 0, overYear: 0 }
     })
   }
 }

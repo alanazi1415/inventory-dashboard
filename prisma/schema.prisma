@@ -30,6 +30,7 @@ model InventoryItem {
   @@index([genericItemNumber])
   @@index([customerItemNumber])
   @@index([tradeItemNumber])
+  @@index([holdQty])
 }
 
 model LifeSavingItem {
