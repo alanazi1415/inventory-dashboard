@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -53,7 +53,7 @@ export function AdminPage({ onLogout }: AdminPageProps) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {systemOptions.map((opt) => (
-              <button key={opt.value} onClick={() => setSelectedSystem(opt.value as any)} className={p-3 rounded-lg border-2 text-center transition-colors {selectedSystem === opt.value ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-gray-300'}}>
+              <button key={opt.value} onClick={() => setSelectedSystem(opt.value as any)} className={`p-3 rounded-lg border-2 text-center transition-colors ${selectedSystem === opt.value ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-gray-300'}`}>
                 <p className="font-medium text-sm">{opt.label}</p><p className="text-xs text-gray-500">{opt.desc}</p>
               </button>
             ))}

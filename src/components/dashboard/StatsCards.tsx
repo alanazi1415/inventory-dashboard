@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, Clock, Package, Heart, Ban, Syringe } from "lucide-react"
 
@@ -18,11 +18,11 @@ export function StatsCards({ stats, onCardClick }: StatsCardsProps) {
       {cards.map((card) => {
         const Icon = card.icon
         return (
-          <Card key={card.id} className={${"$"}{card.clickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''} {card.bgColor}} onClick={() => card.clickable && onCardClick(card.id)}>
+          <Card key={card.id} className={`${card.clickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''} ${card.bgColor}`} onClick={() => card.clickable && onCardClick(card.id)}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div><p className="text-sm text-gray-600">{card.label}</p><p className={	ext-2xl font-bold {card.color}}>{card.value.toLocaleString('ar-SA')}</p></div>
-                <Icon className={w-8 h-8 {card.color}} />
+                <div><p className="text-sm text-gray-600">{card.label}</p><p className={`text-2xl font-bold ${card.color}`}>{card.value.toLocaleString('ar-SA')}</p></div>
+                <Icon className={`w-8 h-8 ${card.color}`} />
               </div>
             </CardContent>
           </Card>

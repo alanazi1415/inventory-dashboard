@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Building2, Truck } from "lucide-react"
 

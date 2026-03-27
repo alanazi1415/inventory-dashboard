@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -26,7 +26,7 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
     setLoading(true)
     try {
       const params = new URLSearchParams({ system, category, page: page.toString(), limit: '20', search, sortBy, sortOrder })
-      const res = await fetch(/api/inventory?{params})
+      const res = await fetch(`/api/inventory?${params}`)
       const data = await res.json()
       setItems(data.items || []); setTotalPages(data.pagination?.totalPages || 1)
     } catch { } finally { setLoading(false) }

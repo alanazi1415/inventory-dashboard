@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileText } from "lucide-react"
@@ -8,7 +8,7 @@ interface ReportsPageProps { system: 'hoz' | 'mwsal' }
 export function ReportsPage({ system }: ReportsPageProps) {
   const [stats, setStats] = useState<any>(null)
   useEffect(() => {
-    fetch(/api/stats?system={system}).then(r => r.json()).then(setStats).catch(() => {})
+    fetch(`/api/stats?system=${system}`).then(r => r.json()).then(setStats).catch(() => {})
   }, [system])
   const reports = [
     { title: 'تقرير البنود المنتهية', desc: 'بنود تجاوز تاريخ انتهاء صلاحيتها', count: stats?.expiredItems || 0 },

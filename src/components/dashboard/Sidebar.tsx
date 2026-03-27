@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { Button } from "@/components/ui/button"
 import { Home, Package, AlertTriangle, Clock, Heart, Truck, FileText, LogIn, LogOut, RefreshCw, Syringe } from "lucide-react"
 
@@ -24,7 +24,7 @@ export function Sidebar({ currentPage, onPageChange, selectedSystem, onSystemCha
       <div className="p-3 border-b">
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">النظام:</span>
-          <span className={px-3 py-1 rounded-full text-sm font-medium {selectedSystem === 'hoz' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}}>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSystem === 'hoz' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
             {selectedSystem === 'hoz' ? 'هوز (E200)' : 'موصول (E300)'}
           </span>
         </div>
@@ -35,7 +35,7 @@ export function Sidebar({ currentPage, onPageChange, selectedSystem, onSystemCha
           const Icon = item.icon
           const isActive = currentPage === item.id
           return (
-            <button key={item.id} onClick={() => onPageChange(item.id)} className={w-full flex items-center gap-3 px-3 py-2 rounded-lg text-right transition-colors {isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-gray-700'}}>
+            <button key={item.id} onClick={() => onPageChange(item.id)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-right transition-colors ${isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-gray-700'}`}>
               <Icon className="w-5 h-5" /><span className="text-sm font-medium">{item.label}</span>
             </button>
           )
