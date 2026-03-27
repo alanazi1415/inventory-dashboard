@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         { genericItemDescription: { contains: search, mode: 'insensitive' } },
         { tradeItemNumber: { contains: search, mode: 'insensitive' } },
         { customerItemNumber: { contains: search, mode: 'insensitive' } },
+        { holdType: { contains: search, mode: 'insensitive' } },
       ]
     }
 

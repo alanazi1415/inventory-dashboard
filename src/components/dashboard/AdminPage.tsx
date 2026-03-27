@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileSpreadsheet, RefreshCw, Users, Eye, Database, Heart, Syringe, Ban, AlertTriangle } from "lucide-react"
+import { Upload, FileSpreadsheet, RefreshCw, Users, Eye, Database, Heart, Syringe, Ban, AlertTriangle, Clock } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface AdminPageProps { onLogout: () => void }
@@ -20,7 +20,6 @@ export function AdminPage({ onLogout }: AdminPageProps) {
     try {
       const res = await fetch('/api/admin/stats')
       const data = await res.json()
-      console.log('Stats fetched:', data)
       setStats(data)
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -54,7 +53,8 @@ export function AdminPage({ onLogout }: AdminPageProps) {
           records: data.recordsCount,
           time: new Date().toLocaleString('ar-SA')
         }, ...prev])
-        fetchStats()
+        // Refresh stats after upload
+        setTimeout(fetchStats, 1000)
       } else {
         toast({ title: "خطأ", description: data.details || data.error, variant: "destructive" })
       }
@@ -67,11 +67,11 @@ export function AdminPage({ onLogout }: AdminPageProps) {
   }
 
   const systemOptions = [
-    { value: 'hoz', label: 'هوز (E200)', desc: 'مستودع هوز', icon: Database, color: 'text-purple-500' },
-    { value: 'mwsal', label: 'موصول (E300)', desc: 'مستودع موصول', icon: Database, color: 'text-orange-500' },
-    { value: 'life_saving', label: 'البنود المنقذة للحياة', desc: 'قائمة البنود المنقذة', icon: Heart, color: 'text-pink-500' },
-    { value: 'narcotic', label: 'المخدرات', desc: 'قائمة البنود المخدرة', icon: Ban, color: 'text-purple-600' },
-    { value: 'vaccine', label: 'اللقاحات', desc: 'قائمة اللقاحات', icon: Syringe, color: 'text-green-500' },
+    { value: 'hoz', label: 'هوز (E200)', desc: 'مستودع هوز', icon: Database, color: 'text-purple-500', bgColor: 'bg-purple-50' },
+    { value: 'mwsal', label: 'موصول (E300)', desc: 'مستودع موصول', icon: Database, color: 'text-orange-500', bgColor: 'bg-orange-50' },
+    { value: 'life_saving', label: 'البنود المنقذة للحياة', desc: 'قائمة البنود المنقذة', icon: Heart, color: 'text-pink-500', bgColor: 'bg-pink-50' },
+    { value: 'narcotic', label: 'المخدرات', desc: 'قائمة البنود المخدرة', icon: Ban, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { value: 'vaccine', label: 'اللقاحات', desc: 'قائمة اللقاحات', icon: Syringe, color: 'text-green-500', bgColor: 'bg-green-50' },
   ]
 
   return (
@@ -84,8 +84,8 @@ export function AdminPage({ onLogout }: AdminPageProps) {
         <Button variant="outline" onClick={onLogout}>تسجيل الخروج</Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Visitors Stats */}
+      <div className="grid grid-cols-2 gap-4">
         <Card className="bg-blue-50">
           <CardContent className="p-4 flex items-center gap-3">
             <Users className="w-8 h-8 text-blue-500" />
@@ -104,55 +104,86 @@ export function AdminPage({ onLogout }: AdminPageProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-purple-50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Database className="w-8 h-8 text-purple-500" />
-            <div>
-              <p className="text-sm text-gray-600">بنود هوز</p>
-              <p className="text-2xl font-bold text-purple-600">{stats?.hozItems?.toLocaleString('ar-SA') || 0}</p>
+      </div>
+
+      {/* System Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Hoz Stats */}
+        <Card className="border-purple-200">
+          <CardHeader className="bg-purple-50 pb-2">
+            <CardTitle className="text-purple-700 flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              هوز (E200)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="flex justify-between"><span>إجمالي البنود:</span><strong>{stats?.hozItems?.toLocaleString('ar-SA') || 0}</strong></div>
+              <div className="flex justify-between text-red-600"><span>المنتهية:</span><strong>{stats?.hozExpired?.toLocaleString('ar-SA') || 0}</strong></div>
+              <div className="flex justify-between text-orange-600"><span>قاربت على الانتهاء:</span><strong>{stats?.hozExpiring?.toLocaleString('ar-SA') || 0}</strong></div>
+              <div className="flex justify-between text-yellow-600"><span>عليها Hold:</span><strong>{stats?.hozHoldItems?.toLocaleString('ar-SA') || 0}</strong></div>
+              <div className="flex justify-between text-pink-600"><span>المنقذة للحياة:</span><strong>{stats?.lifeSavingInHoz?.toLocaleString('ar-SA') || 0}</strong></div>
             </div>
+            
+            {/* Hold Types for Hoz */}
+            {stats?.hozHoldTypes?.length > 0 && (
+              <div className="mt-2 pt-2 border-t">
+                <p className="text-xs text-gray-500 mb-2">أنواع Hold:</p>
+                <div className="space-y-1">
+                  {stats.hozHoldTypes.map((ht: any, i: number) => (
+                    <div key={i} className="flex justify-between text-xs bg-gray-50 p-1 rounded">
+                      <span>{ht.type}</span>
+                      <span>{ht.count} بند ({ht.qty?.toLocaleString('ar-SA')} وحدة)</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
-        <Card className="bg-orange-50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Database className="w-8 h-8 text-orange-500" />
-            <div>
-              <p className="text-sm text-gray-600">بنود موصول</p>
-              <p className="text-2xl font-bold text-orange-600">{stats?.mwsalItems?.toLocaleString('ar-SA') || 0}</p>
+
+        {/* Mwsal Stats */}
+        <Card className="border-orange-200">
+          <CardHeader className="bg-orange-50 pb-2">
+            <CardTitle className="text-orange-700 flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              موصول (E300)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="flex justify-between"><span>إجمالي البنود:</span><strong>{stats?.mwsalItems?.toLocaleString('ar-SA') || 0}</strong></div>
+              <div className="flex justify-between text-red-600"><span>المنتهية:</span><strong>{stats?.mwsalExpired?.toLocaleString('ar-SA') || 0}</strong></div>
+              <div className="flex justify-between text-orange-600"><span>قاربت على الانتهاء:</span><strong>{stats?.mwsalExpiring?.toLocaleString('ar-SA') || 0}</strong></div>
+              <div className="flex justify-between text-yellow-600"><span>عليها Hold:</span><strong>{stats?.mwsalHoldItems?.toLocaleString('ar-SA') || 0}</strong></div>
+              <div className="flex justify-between text-pink-600"><span>المنقذة للحياة:</span><strong>{stats?.lifeSavingInMwsal?.toLocaleString('ar-SA') || 0}</strong></div>
             </div>
+            
+            {/* Hold Types for Mwsal */}
+            {stats?.mwsalHoldTypes?.length > 0 && (
+              <div className="mt-2 pt-2 border-t">
+                <p className="text-xs text-gray-500 mb-2">أنواع Hold:</p>
+                <div className="space-y-1">
+                  {stats.mwsalHoldTypes.map((ht: any, i: number) => (
+                    <div key={i} className="flex justify-between text-xs bg-gray-50 p-1 rounded">
+                      <span>{ht.type}</span>
+                      <span>{ht.count} بند ({ht.qty?.toLocaleString('ar-SA')} وحدة)</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Hold Items */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-yellow-50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-yellow-600" />
-            <div>
-              <p className="text-sm text-gray-600">بنود هوز عليها Hold</p>
-              <p className="text-xl font-bold text-yellow-600">{stats?.hozHoldItems?.toLocaleString('ar-SA') || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-yellow-50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-yellow-600" />
-            <div>
-              <p className="text-sm text-gray-600">بنود موصول عليها Hold</p>
-              <p className="text-xl font-bold text-yellow-600">{stats?.mwsalHoldItems?.toLocaleString('ar-SA') || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Special Items Counts */}
+      {/* Special Items Uploaded */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="bg-pink-50">
           <CardContent className="p-4 flex items-center gap-3">
             <Heart className="w-6 h-6 text-pink-500" />
             <div>
-              <p className="text-sm text-gray-600">البنود المنقذة للحياة</p>
+              <p className="text-sm text-gray-600">قائمة البنود المنقذة</p>
               <p className="text-xl font-bold text-pink-600">{stats?.lifeSavingCount?.toLocaleString('ar-SA') || 0}</p>
             </div>
           </CardContent>
@@ -161,7 +192,7 @@ export function AdminPage({ onLogout }: AdminPageProps) {
           <CardContent className="p-4 flex items-center gap-3">
             <Ban className="w-6 h-6 text-purple-600" />
             <div>
-              <p className="text-sm text-gray-600">البنود المخدرة</p>
+              <p className="text-sm text-gray-600">قائمة البنود المخدرة</p>
               <p className="text-xl font-bold text-purple-600">{stats?.narcoticCount?.toLocaleString('ar-SA') || 0}</p>
             </div>
           </CardContent>
@@ -170,7 +201,7 @@ export function AdminPage({ onLogout }: AdminPageProps) {
           <CardContent className="p-4 flex items-center gap-3">
             <Syringe className="w-6 h-6 text-green-500" />
             <div>
-              <p className="text-sm text-gray-600">اللقاحات</p>
+              <p className="text-sm text-gray-600">قائمة اللقاحات</p>
               <p className="text-xl font-bold text-green-600">{stats?.vaccineCount?.toLocaleString('ar-SA') || 0}</p>
             </div>
           </CardContent>
@@ -215,21 +246,11 @@ export function AdminPage({ onLogout }: AdminPageProps) {
               accept=".xlsx,.xls"
               className="hidden"
             />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="min-w-32"
-            >
+            <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="min-w-32">
               {uploading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 ml-2 animate-spin" />
-                  جاري الرفع...
-                </>
+                <><RefreshCw className="w-4 h-4 ml-2 animate-spin" />جاري الرفع...</>
               ) : (
-                <>
-                  <FileSpreadsheet className="w-4 h-4 ml-2" />
-                  اختار ملف
-                </>
+                <><FileSpreadsheet className="w-4 h-4 ml-2" />اختار ملف</>
               )}
             </Button>
             <p className="text-sm text-gray-500">ملفات مدعومة: .xlsx, .xls</p>
@@ -262,12 +283,13 @@ export function AdminPage({ onLogout }: AdminPageProps) {
 
       {/* Instructions */}
       <Card>
-        <CardHeader><CardTitle>تعليمات</CardTitle></CardHeader>
+        <CardHeader><CardTitle>تعليمات مهمة</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm text-gray-600">
-          <p><strong>1.</strong> اختر النظام ثم ارفع ملف Excel</p>
-          <p><strong>2.</strong> أعمدة ملف المخزون: Generic Item Number, BBD (تاريخ الانتهاء), Total Qty, Avail Qty, Hold</p>
-          <p><strong>3.</strong> ملف البنود الخاصة: Generic Item Number و Customer Item Code</p>
-          <p><strong>4.</strong> الأيام المتبقية تحسب تلقائياً من عمود BBD</p>
+          <p><strong>1.</strong> 📊 <strong>رفع ملفات المخزون (هوز/موصول):</strong> تحتوي على بيانات المخزون الكاملة</p>
+          <p><strong>2.</strong> ❤️ <strong>رفع قائمة البنود المنقذة للحياة:</strong> يربط البنود تلقائياً مع المخزون</p>
+          <p><strong>3.</strong> 💊 <strong>رفع قائمة المخدرات:</strong> يصنف البنود المخدرة في المخزون</p>
+          <p><strong>4.</strong> 💉 <strong>رفع قائمة اللقاحات:</strong> يصنف اللقاحات في المخزون</p>
+          <p className="text-xs text-gray-500 mt-2">⚠️ يجب رفع ملفات المخزون أولاً، ثم رفع القوائم الخاصة للتصنيف الصحيح</p>
         </CardContent>
       </Card>
     </div>

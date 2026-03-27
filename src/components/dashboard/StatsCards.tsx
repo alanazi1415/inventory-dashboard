@@ -1,8 +1,19 @@
 'use client'
 import { Card, CardContent } from "@/components/ui/card"
-import { AlertTriangle, Clock, Package, Heart, Ban, Syringe } from "lucide-react"
+import { AlertTriangle, Clock, Package, Heart, Ban, Syringe, Info } from "lucide-react"
 
-interface StatsCardsProps { stats: { totalItems: number; expiredItems: number; expiringItems: number; holdItems: number; lifeSavingItems: number; vaccineItems: number }; onCardClick: (cat: string) => void }
+interface StatsCardsProps { 
+  stats: { 
+    totalItems: number
+    expiredItems: number
+    expiringItems: number
+    holdItems: number
+    lifeSavingItems: number
+    vaccineItems: number
+    holdTypes?: { type: string; count: number; qty: number }[]
+  }
+  onCardClick: (cat: string) => void 
+}
 
 export function StatsCards({ stats, onCardClick }: StatsCardsProps) {
   const cards = [
@@ -13,21 +24,55 @@ export function StatsCards({ stats, onCardClick }: StatsCardsProps) {
     { id: 'life-saving', label: 'البنود المنقذة للحياة', value: stats.lifeSavingItems, icon: Heart, color: 'text-pink-500', bgColor: 'bg-pink-50', clickable: true },
     { id: 'vaccine', label: 'اللقاحات', value: stats.vaccineItems || 0, icon: Syringe, color: 'text-green-500', bgColor: 'bg-green-50', clickable: true },
   ]
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      {cards.map((card) => {
-        const Icon = card.icon
-        return (
-          <Card key={card.id} className={`${card.clickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''} ${card.bgColor}`} onClick={() => card.clickable && onCardClick(card.id)}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div><p className="text-sm text-gray-600">{card.label}</p><p className={`text-2xl font-bold ${card.color}`}>{card.value.toLocaleString('ar-SA')}</p></div>
-                <Icon className={`w-8 h-8 ${card.color}`} />
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
+    <div className="space-y-4">
+      {/* Main Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {cards.map((card) => {
+          const Icon = card.icon
+          return (
+            <Card 
+              key={card.id} 
+              className={`${card.clickable ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''} ${card.bgColor}`} 
+              onClick={() => card.clickable && onCardClick(card.id)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">{card.label}</p>
+                    <p className={`text-2xl font-bold ${card.color}`}>{card.value.toLocaleString('ar-SA')}</p>
+                  </div>
+                  <Icon className={`w-8 h-8 ${card.color}`} />
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Hold Types Distribution */}
+      {stats.holdTypes && stats.holdTypes.length > 0 && (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="w-5 h-5 text-yellow-600" />
+              <h3 className="font-bold text-yellow-800">توزيع أنواع Hold</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {stats.holdTypes.map((ht, i) => (
+                <div key={i} className="bg-white rounded-lg p-3 shadow-sm">
+                  <p className="text-sm text-gray-600 truncate" title={ht.type}>{ht.type}</p>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="font-bold text-yellow-700">{ht.count} بند</p>
+                    <p className="text-sm text-gray-500">{ht.qty.toLocaleString('ar-SA')} وحدة</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

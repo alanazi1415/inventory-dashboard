@@ -19,6 +19,8 @@ interface InventoryItem {
   holdQty: number
   expiryDate: string | null
   daysToExpire: number
+  hold: string | null
+  holdType: string | null
   isLifeSaving: boolean
   isNarcotic: boolean
   isVaccine: boolean
@@ -74,6 +76,21 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
     return <Badge className="bg-green-500 text-white">سليم</Badge>
   }
 
+  const getHoldBadge = (item: InventoryItem) => {
+    if (item.holdQty <= 0) return null
+    
+    let bgColor = 'bg-yellow-500'
+    if (item.holdType?.includes('Strategic')) bgColor = 'bg-blue-500'
+    if (item.holdType?.includes('Customer')) bgColor = 'bg-purple-500'
+    if (item.holdType?.includes('QC')) bgColor = 'bg-orange-500'
+    
+    return (
+      <Badge className={`${bgColor} text-white text-xs`}>
+        {item.holdType || 'Hold'}
+      </Badge>
+    )
+  }
+
   const getItemBadges = (item: InventoryItem) => {
     const badges = []
     if (item.isLifeSaving) badges.push(<span key="l" title="منقذ للحياة"><Heart className="w-4 h-4 text-pink-500" /></span>)
@@ -94,6 +111,7 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
                 <SelectItem value="daysToExpire">تاريخ الانتهاء</SelectItem>
                 <SelectItem value="totalQty">الكمية</SelectItem>
                 <SelectItem value="genericItemNumber">رقم البند</SelectItem>
+                <SelectItem value="holdQty">كمية Hold</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'asc' | 'desc')}>
@@ -107,7 +125,7 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
         </CardTitle>
         <div className="flex gap-2 mt-4 flex-wrap">
           <Input
-            placeholder="بحث برقم البند (نوبكو / وزاري / تريد كود) أو الوصف..."
+            placeholder="بحث برقم البند (نوبكو / وزاري / تريد كود) أو سبب Hold..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -128,19 +146,27 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
                 <TableHead>الكمية</TableHead>
                 <TableHead>المتاحة</TableHead>
                 <TableHead>Hold</TableHead>
+                <TableHead>سبب Hold</TableHead>
                 <TableHead>تاريخ الانتهاء</TableHead>
-                <TableHead>الأيام المتبقية</TableHead>
+                <TableHead>الأيام</TableHead>
                 <TableHead>الحالة</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8">جاري التحميل...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8">جاري التحميل...</TableCell></TableRow>
               ) : items.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-gray-500">لا توجد بيانات</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-gray-500">لا توجد بيانات</TableCell></TableRow>
               ) : (
                 items.map((item) => (
-                  <TableRow key={item.id} className={item.daysToExpire <= 0 ? "bg-red-50" : item.daysToExpire <= 90 ? "bg-orange-50" : ""}>
+                  <TableRow 
+                    key={item.id} 
+                    className={
+                      item.daysToExpire <= 0 ? "bg-red-50" : 
+                      item.daysToExpire <= 90 ? "bg-orange-50" : 
+                      item.holdQty > 0 ? "bg-yellow-50" : ""
+                    }
+                  >
                     <TableCell className="font-mono text-sm">
                       <div className="flex items-center gap-1">
                         {getItemBadges(item)}
@@ -160,6 +186,7 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
                         </div>
                       )}
                     </TableCell>
+                    <TableCell>{getHoldBadge(item)}</TableCell>
                     <TableCell>{item.expiryDate}</TableCell>
                     <TableCell>{Math.round(item.daysToExpire)}</TableCell>
                     <TableCell>{getExpiryBadge(item.daysToExpire)}</TableCell>

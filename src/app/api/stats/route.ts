@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
 
     console.log('Stats API called for system:', system)
 
+    // Basic counts
     const [
       totalItems,
       expiredItems,
@@ -28,15 +29,29 @@ export async function GET(request: NextRequest) {
       db.inventoryItem.count({ where: { system, isVaccine: true } }),
     ])
 
+    // Aggregated quantities
     const totalQty = await db.inventoryItem.aggregate({
       where: { system },
       _sum: { totalQty: true, availableQty: true, holdQty: true }
     })
 
-    console.log('Stats result:', { 
-      totalItems, expiredItems, expiringItems, holdItems, 
-      totalQty: totalQty._sum 
+    // Hold Types distribution
+    const holdTypes = await db.inventoryItem.groupBy({
+      by: ['holdType'],
+      where: { system, holdQty: { gt: 0 } },
+      _count: { id: true },
+      _sum: { holdQty: true }
     })
+
+    // Expiry distribution
+    const expiryDistribution = {
+      expired: await db.inventoryItem.count({ where: { system, daysToExpire: { lte: 0 } } }),
+      oneMonth: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 0, lte: 30 } } }),
+      threeMonths: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 30, lte: 90 } } }),
+      sixMonths: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 90, lte: 180 } } }),
+      oneYear: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 180, lte: 365 } } }),
+      overYear: await db.inventoryItem.count({ where: { system, daysToExpire: { gt: 365 } } }),
+    }
 
     return NextResponse.json({
       totalItems,
@@ -49,6 +64,12 @@ export async function GET(request: NextRequest) {
       totalQty: totalQty._sum.totalQty || 0,
       availableQty: totalQty._sum.availableQty || 0,
       holdQtySum: totalQty._sum.holdQty || 0,
+      holdTypes: holdTypes.map(h => ({
+        type: h.holdType || 'غير محدد',
+        count: h._count.id,
+        qty: h._sum.holdQty || 0
+      })),
+      expiryDistribution
     })
   } catch (error: any) {
     console.error('Stats error:', error)
@@ -63,6 +84,8 @@ export async function GET(request: NextRequest) {
       totalQty: 0,
       availableQty: 0,
       holdQtySum: 0,
+      holdTypes: [],
+      expiryDistribution: { expired: 0, oneMonth: 0, threeMonths: 0, sixMonths: 0, oneYear: 0, overYear: 0 }
     })
   }
 }
