@@ -27,6 +27,17 @@ export default function HomePage() {
   useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t) }, [])
   useEffect(() => { if (selectedSystem) fetchStats() }, [selectedSystem])
 
+  // تسجيل الزيارة
+  useEffect(() => {
+    if (selectedSystem && !isAdmin) {
+      fetch('/api/visitor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: currentPage, system: selectedSystem })
+      }).catch(() => {})
+    }
+  }, [selectedSystem, currentPage, isAdmin])
+
   const fetchStats = async () => {
     if (!selectedSystem) return
     setLoading(true)
