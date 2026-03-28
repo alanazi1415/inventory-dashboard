@@ -5,14 +5,18 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const { page, system } = await request.json()
+    const body = await request.json()
+    const { page, system } = body
+    console.log('Visitor API called:', { page, system })
     
-    await db.visitorLog.create({
+    const result = await db.visitorLog.create({
       data: { page: page || 'unknown', system: system || null }
     })
+    console.log('Visitor logged:', result.id)
     
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    return NextResponse.json({ success: false }, { status: 500 })
+    return NextResponse.json({ success: true, id: result.id })
+  } catch (error: any) {
+    console.error('Visitor API error:', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
