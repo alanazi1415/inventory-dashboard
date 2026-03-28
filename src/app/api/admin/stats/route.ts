@@ -10,8 +10,7 @@ export async function GET() {
     // Basic counts
     const totalVisits = await db.visitorLog.count().catch(() => 0)
 
-    // حساب زيارات اليوم بناءً على تاريخ اليوم بتوقيت السعودية
-    // نستخدم بداية اليوم بتوقيت UTC مع إضافة 3 ساعات للسعودية
+    // حساب زيارات اليوم باستخدام visitedAt (اسم العمود الفعلي في قاعدة البيانات)
     const now = new Date()
     const saudiOffset = 3 * 60 * 60 * 1000
     const saudiNow = new Date(now.getTime() + saudiOffset)
@@ -19,14 +18,13 @@ export async function GET() {
     saudiStartOfDay.setUTCHours(0, 0, 0, 0)
     const todayStartUTC = new Date(saudiStartOfDay.getTime() - saudiOffset)
 
-    // نحاول حساب زيارات اليوم، وإذا فشل (عمود createdAt غير موجود) نستخدم الـ total
     let todayVisits = totalVisits
     try {
-      todayVisits = await db.visitorLog.count({
-        where: { createdAt: { gte: todayStartUTC } }
-      })
+      todayVisits = await db.$queryRaw`
+        SELECT COUNT(*)::int as count FROM "VisitorLog" WHERE "visitedAt" >= ${todayStartUTC}
+      `.then((r: any) => r[0]?.count || 0)
     } catch (e) {
-      console.log('createdAt column not available, using total visits')
+      console.log('visitedAt query failed, using total visits')
     }
     
     // Inventory counts
