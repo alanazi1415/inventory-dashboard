@@ -9,9 +9,16 @@ export async function GET() {
     
     // Basic counts
     const totalVisits = await db.visitorLog.count().catch(() => 0)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const todayVisits = await db.visitorLog.count({ where: { createdAt: { gte: today } } }).catch(() => 0)
+
+    // حساب زيارات اليوم (توقيت السعودية UTC+3)
+    const now = new Date()
+    const saudiOffset = 3 * 60 * 60 * 1000 // 3 ساعات بالميلي ثانية
+    const saudiNow = new Date(now.getTime() + saudiOffset)
+    const saudiStartOfDay = new Date(saudiNow)
+    saudiStartOfDay.setUTCHours(0, 0, 0, 0)
+    // نطرح 3 ساعات للحصول على بداية اليوم بتوقيت UTC
+    const todayStartUTC = new Date(saudiStartOfDay.getTime() - saudiOffset)
+    const todayVisits = await db.visitorLog.count({ where: { createdAt: { gte: todayStartUTC } } }).catch(() => 0)
     
     // Inventory counts
     const hozItems = await db.inventoryItem.count({ where: { system: 'hoz' } }).catch(() => 0)
