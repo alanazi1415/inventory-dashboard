@@ -9,21 +9,15 @@ export async function POST(request: NextRequest) {
     const { page, system } = body
     console.log('Visitor API called:', { page, system })
 
-    // نحاول إنشاء سجل مع createdAt، وإذا فشل نجرب بدونه
-    let result
-    try {
-      result = await db.visitorLog.create({
-        data: { page: page || 'unknown', system: system || null }
-      })
-    } catch (createError: any) {
-      console.log('Create with createdAt failed, trying without:', createError.message)
-      // إذا فشل، نستخدم raw query بدون createdAt
-      await db.$executeRaw`INSERT INTO "VisitorLog" (id, page, system) VALUES (gen_random_uuid(), ${page || 'unknown'}, ${system || null})`
-      result = { id: 'created' }
-    }
+    // نستخدم raw query مع تحديد الأعمدة المطلوبة فقط
+    // الجدول يحتوي على: id, page, system, createdAt وأعمدة إضافية
+    await db.$executeRaw`
+      INSERT INTO "VisitorLog" (id, page, system, "createdAt")
+      VALUES (gen_random_uuid(), ${page || 'unknown'}, ${system || null}, NOW())
+    `
 
-    console.log('Visitor logged:', result.id)
-    return NextResponse.json({ success: true, id: result.id })
+    console.log('Visitor logged successfully')
+    return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Visitor API error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
