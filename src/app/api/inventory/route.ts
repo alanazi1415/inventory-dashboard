@@ -6,6 +6,14 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    // التحقق من وجود عمود isStrategic وإضافته إذا لم يكن موجوداً
+    try {
+      await db.$executeRaw`SELECT "isStrategic" FROM "InventoryItem" LIMIT 1`
+    } catch {
+      console.log('Adding isStrategic column...')
+      await db.$executeRaw`ALTER TABLE "InventoryItem" ADD COLUMN IF NOT EXISTS "isStrategic" BOOLEAN NOT NULL DEFAULT false`
+    }
+
     const { searchParams } = new URL(request.url)
     const system = searchParams.get('system') || 'hoz'
     const page = parseInt(searchParams.get('page') || '1')
