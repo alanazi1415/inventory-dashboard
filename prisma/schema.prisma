@@ -24,6 +24,7 @@ model InventoryItem {
   isLifeSaving            Boolean  @default(false)
   isNarcotic              Boolean  @default(false)
   isVaccine               Boolean  @default(false)
+  isStrategic             Boolean  @default(false)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
@@ -51,6 +52,14 @@ model NarcoticItem {
 }
 
 model VaccineItem {
+  id          String   @id @default(cuid())
+  itemNumber  String
+  createdAt   DateTime @default(now())
+  
+  @@index([itemNumber])
+}
+
+model StrategicItem {
   id          String   @id @default(cuid())
   itemNumber  String
   createdAt   DateTime @default(now())

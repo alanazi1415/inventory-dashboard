@@ -49,6 +49,9 @@ export async function GET(request: NextRequest) {
       case 'vaccine':
         where.isVaccine = true
         break
+      case 'strategic':
+        where.isStrategic = true
+        break
     }
 
     // Sorting

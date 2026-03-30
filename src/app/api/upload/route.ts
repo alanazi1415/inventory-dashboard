@@ -80,16 +80,18 @@ export async function POST(request: NextRequest) {
       await db.inventoryItem.deleteMany({ where: { system } })
 
       // Get special items lists
-      const [lifeSaving, narcotic, vaccine] = await Promise.all([
+      const [lifeSaving, narcotic, vaccine, strategic] = await Promise.all([
         db.lifeSavingItem.findMany().catch(() => []),
         db.narcoticItem.findMany().catch(() => []),
-        db.vaccineItem.findMany().catch(() => [])
+        db.vaccineItem.findMany().catch(() => []),
+        db.strategicItem.findMany().catch(() => [])
       ])
 
       // Create lookup sets
       const lifeSavingSet = new Set(lifeSaving.map(i => i.itemNumber))
       const narcoticSet = new Set(narcotic.map(i => i.itemNumber))
       const vaccineSet = new Set(vaccine.map(i => i.itemNumber))
+      const strategicSet = new Set(strategic.map(i => i.itemNumber))
 
       const items = (data as any[]).map(row => {
         const genericNum = safeString(row['Generic Item Number'])
@@ -118,6 +120,9 @@ export async function POST(request: NextRequest) {
         const isVaccine = vaccineSet.has(genericNum || '') || 
                          vaccineSet.has(customerCode || '') ||
                          vaccineSet.has(tradeNum || '')
+        const isStrategic = strategicSet.has(genericNum || '') || 
+                           strategicSet.has(customerCode || '') ||
+                           strategicSet.has(tradeNum || '')
 
         return {
           system,
@@ -135,6 +140,7 @@ export async function POST(request: NextRequest) {
           isLifeSaving,
           isNarcotic,
           isVaccine,
+          isStrategic,
         }
       })
 
@@ -250,6 +256,41 @@ export async function POST(request: NextRequest) {
             ]
           },
           data: { isVaccine: true }
+        })
+      }
+
+    } else if (system === 'strategic') {
+      await db.strategicItem.deleteMany()
+      
+      const rows = data as any[]
+      const insertedItems = new Set<string>()
+      
+      for (const row of rows) {
+        const genericNum = safeString(row['Generic Item Number'])
+        const customerCode = safeString(row['Customer Item Code'])
+        
+        if (genericNum && !insertedItems.has(genericNum)) {
+          await db.strategicItem.create({ data: { itemNumber: genericNum } })
+          insertedItems.add(genericNum)
+          recordsCount++
+        }
+        if (customerCode && !insertedItems.has(customerCode)) {
+          await db.strategicItem.create({ data: { itemNumber: customerCode } })
+          insertedItems.add(customerCode)
+        }
+      }
+
+      const allNumbers = Array.from(insertedItems)
+      if (allNumbers.length > 0) {
+        await db.inventoryItem.updateMany({
+          where: {
+            OR: [
+              { genericItemNumber: { in: allNumbers } },
+              { customerItemNumber: { in: allNumbers } },
+              { tradeItemNumber: { in: allNumbers } }
+            ]
+          },
+          data: { isStrategic: true }
         })
       }
     }

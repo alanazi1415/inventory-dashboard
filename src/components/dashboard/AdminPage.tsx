@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Upload, FileSpreadsheet, RefreshCw, Users, Eye, Database, Heart, Syringe, Ban, AlertTriangle, Clock } from "lucide-react"
+import { Upload, FileSpreadsheet, RefreshCw, Users, Eye, Database, Heart, Syringe, Ban, AlertTriangle, Clock, Shield } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface AdminPageProps { onLogout: () => void }
@@ -12,7 +12,7 @@ export function AdminPage({ onLogout }: AdminPageProps) {
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
-  const [selectedSystem, setSelectedSystem] = useState<'hoz' | 'mwsal' | 'life_saving' | 'narcotic' | 'vaccine'>('hoz')
+  const [selectedSystem, setSelectedSystem] = useState<'hoz' | 'mwsal' | 'life_saving' | 'narcotic' | 'vaccine' | 'strategic'>('hoz')
   const [uploadLogs, setUploadLogs] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
 
@@ -72,6 +72,7 @@ export function AdminPage({ onLogout }: AdminPageProps) {
     { value: 'life_saving', label: 'البنود المنقذة للحياة', desc: 'قائمة البنود المنقذة', icon: Heart, color: 'text-pink-500', bgColor: 'bg-pink-50' },
     { value: 'narcotic', label: 'المخدرات', desc: 'قائمة البنود المخدرة', icon: Ban, color: 'text-purple-600', bgColor: 'bg-purple-50' },
     { value: 'vaccine', label: 'اللقاحات', desc: 'قائمة اللقاحات', icon: Syringe, color: 'text-green-500', bgColor: 'bg-green-50' },
+    { value: 'strategic', label: 'البنود الاستراتيجية', desc: 'قائمة البنود الاستراتيجية', icon: Shield, color: 'text-amber-500', bgColor: 'bg-amber-50' },
   ]
 
   return (
@@ -178,7 +179,7 @@ export function AdminPage({ onLogout }: AdminPageProps) {
       </div>
 
       {/* Special Items Uploaded */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-pink-50">
           <CardContent className="p-4 flex items-center gap-3">
             <Heart className="w-6 h-6 text-pink-500" />
@@ -206,6 +207,15 @@ export function AdminPage({ onLogout }: AdminPageProps) {
             </div>
           </CardContent>
         </Card>
+        <Card className="bg-amber-50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Shield className="w-6 h-6 text-amber-500" />
+            <div>
+              <p className="text-sm text-gray-600">قائمة البنود الاستراتيجية</p>
+              <p className="text-xl font-bold text-amber-600">{stats?.strategicCount?.toLocaleString('ar-SA') || 0}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Upload Section */}
@@ -218,7 +228,7 @@ export function AdminPage({ onLogout }: AdminPageProps) {
           <CardDescription>اختر النظام ثم ارفع ملف Excel الخاص به</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
             {systemOptions.map((opt) => {
               const Icon = opt.icon
               return (
@@ -289,6 +299,7 @@ export function AdminPage({ onLogout }: AdminPageProps) {
           <p><strong>2.</strong> ❤️ <strong>رفع قائمة البنود المنقذة للحياة:</strong> يربط البنود تلقائياً مع المخزون</p>
           <p><strong>3.</strong> 💊 <strong>رفع قائمة المخدرات:</strong> يصنف البنود المخدرة في المخزون</p>
           <p><strong>4.</strong> 💉 <strong>رفع قائمة اللقاحات:</strong> يصنف اللقاحات في المخزون</p>
+          <p><strong>5.</strong> 🛡️ <strong>رفع قائمة البنود الاستراتيجية:</strong> يصنف البنود الاستراتيجية في المخزون</p>
           <p className="text-xs text-gray-500 mt-2">⚠️ يجب رفع ملفات المخزون أولاً، ثم رفع القوائم الخاصة للتصنيف الصحيح</p>
         </CardContent>
       </Card>

@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
       holdItems,
       lifeSavingItems,
       narcoticItems,
-      vaccineItems
+      vaccineItems,
+      strategicItems
     ] = await Promise.all([
       db.inventoryItem.count({ where: { system } }),
       db.inventoryItem.count({ where: { system, daysToExpire: { lte: 0 } } }),
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
       db.inventoryItem.count({ where: { system, isLifeSaving: true } }),
       db.inventoryItem.count({ where: { system, isNarcotic: true } }),
       db.inventoryItem.count({ where: { system, isVaccine: true } }),
+      db.inventoryItem.count({ where: { system, isStrategic: true } }),
     ])
 
     // Aggregated quantities
@@ -61,6 +63,7 @@ export async function GET(request: NextRequest) {
       lifeSavingItems,
       narcoticItems,
       vaccineItems,
+      strategicItems,
       totalQty: totalQty._sum.totalQty || 0,
       availableQty: totalQty._sum.availableQty || 0,
       holdQtySum: totalQty._sum.holdQty || 0,
@@ -81,6 +84,7 @@ export async function GET(request: NextRequest) {
       lifeSavingItems: 0,
       narcoticItems: 0,
       vaccineItems: 0,
+      strategicItems: 0,
       totalQty: 0,
       availableQty: 0,
       holdQtySum: 0,

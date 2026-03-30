@@ -54,6 +54,7 @@ export async function GET() {
     const lifeSavingCount = await db.lifeSavingItem.count().catch(() => 0)
     const narcoticCount = await db.narcoticItem.count().catch(() => 0)
     const vaccineCount = await db.vaccineItem.count().catch(() => 0)
+    const strategicCount = await db.strategicItem.count().catch(() => 0)
     
     // Items marked as special in inventory
     const lifeSavingInHoz = await db.inventoryItem.count({ where: { system: 'hoz', isLifeSaving: true } }).catch(() => 0)
@@ -88,6 +89,7 @@ export async function GET() {
       lifeSavingCount,
       narcoticCount,
       vaccineCount,
+      strategicCount,
       lifeSavingInHoz,
       lifeSavingInMwsal,
       hozExpired,
@@ -118,6 +120,7 @@ export async function GET() {
       lifeSavingCount: 0,
       narcoticCount: 0,
       vaccineCount: 0,
+      strategicCount: 0,
       lifeSavingInHoz: 0,
       lifeSavingInMwsal: 0,
       hozExpired: 0,

@@ -11,9 +11,9 @@ import { AdminPage } from '@/components/dashboard/AdminPage'
 import { ReportsPage } from '@/components/dashboard/ReportsPage'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, Clock, Heart, Package, RefreshCw, Calendar, Syringe } from "lucide-react"
+import { AlertTriangle, Clock, Heart, Package, RefreshCw, Calendar, Syringe, Shield } from "lucide-react"
 
-type Page = 'home' | 'inventory' | 'alerts' | 'expiring' | 'life-saving' | 'reports' | 'delivery' | 'vaccines'
+type Page = 'home' | 'inventory' | 'alerts' | 'expiring' | 'life-saving' | 'reports' | 'delivery' | 'vaccines' | 'strategic'
 
 export default function HomePage() {
   const { selectedSystem, showWelcome, setSelectedSystem, setShowWelcome, resetWelcome } = useAppStore()
@@ -55,6 +55,7 @@ export default function HomePage() {
     else if (cat === 'expiring') setCurrentPage('expiring')
     else if (cat === 'life-saving') setCurrentPage('life-saving')
     else if (cat === 'vaccine') setCurrentPage('vaccines')
+    else if (cat === 'strategic') setCurrentPage('strategic')
     else setCurrentPage('inventory')
   }
 
@@ -82,12 +83,13 @@ export default function HomePage() {
             {loading ? <div className="flex items-center justify-center min-h-64"><p className="text-gray-500">جاري التحميل...</p></div> : stats ? (
               <>
                 <StatsCards stats={stats} onCardClick={handleCardClick} />
-                <div className="grid md:grid-cols-5 gap-4 mt-6">
+                <div className="grid md:grid-cols-6 gap-4 mt-6">
                   <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentPage('inventory')}><CardContent className="p-4 flex items-center gap-3"><Package className="w-8 h-8 text-blue-500" /><div><p className="font-semibold">المخزون اللحظي</p><p className="text-sm text-gray-500">عرض كل البنود</p></div></CardContent></Card>
                   <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentPage('alerts')}><CardContent className="p-4 flex items-center gap-3"><AlertTriangle className="w-8 h-8 text-red-500" /><div><p className="font-semibold">التنبيهات</p><p className="text-sm text-gray-500">{stats.expiredItems + stats.holdItems} تنبيه</p></div></CardContent></Card>
                   <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentPage('expiring')}><CardContent className="p-4 flex items-center gap-3"><Clock className="w-8 h-8 text-orange-500" /><div><p className="font-semibold">قاربت على الانتهاء</p><p className="text-sm text-gray-500">{stats.expiringItems} بند</p></div></CardContent></Card>
                   <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentPage('life-saving')}><CardContent className="p-4 flex items-center gap-3"><Heart className="w-8 h-8 text-pink-500" /><div><p className="font-semibold">البنود المنقذة للحياة</p><p className="text-sm text-gray-500">{stats.lifeSavingItems} بند</p></div></CardContent></Card>
                   <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentPage('vaccines')}><CardContent className="p-4 flex items-center gap-3"><Syringe className="w-8 h-8 text-green-500" /><div><p className="font-semibold">اللقاحات</p><p className="text-sm text-gray-500">{stats.vaccineItems || 0} بند</p></div></CardContent></Card>
+                  <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentPage('strategic')}><CardContent className="p-4 flex items-center gap-3"><Shield className="w-8 h-8 text-amber-500" /><div><p className="font-semibold">البنود الاستراتيجية</p><p className="text-sm text-gray-500">{stats.strategicItems || 0} بند</p></div></CardContent></Card>
                 </div>
               </>
             ) : <Card><CardContent className="p-8 text-center"><p className="text-gray-500">لا توجد بيانات. يرجى رفع ملفات Excel من صفحة الأدمن.</p></CardContent></Card>}
@@ -104,6 +106,7 @@ export default function HomePage() {
       case 'expiring': return <div className="p-6"><h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Clock className="w-6 h-6 text-orange-500" />البنود قاربت على الانتهاء (أقل من 90 يوم)</h2><InventoryTable system={selectedSystem} category="expiring" /></div>
       case 'life-saving': return <div className="p-6"><h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Heart className="w-6 h-6 text-pink-500" />البنود المنقذة للحياة</h2><InventoryTable system={selectedSystem} category="life_saving" /></div>
       case 'vaccines': return <div className="p-6"><h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Syringe className="w-6 h-6 text-green-500" />اللقاحات</h2><InventoryTable system={selectedSystem} category="vaccine" /></div>
+      case 'strategic': return <div className="p-6"><h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Shield className="w-6 h-6 text-amber-500" />البنود الاستراتيجية</h2><InventoryTable system={selectedSystem} category="strategic" /></div>
       case 'reports': return <ReportsPage system={selectedSystem} />
       default: return null
     }

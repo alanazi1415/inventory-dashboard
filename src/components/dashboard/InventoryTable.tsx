@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, ChevronLeft, ChevronRight, Heart, Ban, AlertTriangle, Syringe } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Heart, Ban, AlertTriangle, Syringe, Shield } from "lucide-react"
 
 interface InventoryItem {
   id: string
@@ -24,6 +24,7 @@ interface InventoryItem {
   isLifeSaving: boolean
   isNarcotic: boolean
   isVaccine: boolean
+  isStrategic: boolean
 }
 
 interface InventoryTableProps {
@@ -96,6 +97,7 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
     if (item.isLifeSaving) badges.push(<span key="l" title="منقذ للحياة"><Heart className="w-4 h-4 text-pink-500" /></span>)
     if (item.isNarcotic) badges.push(<span key="n" title="مخدر"><Ban className="w-4 h-4 text-purple-500" /></span>)
     if (item.isVaccine) badges.push(<span key="v" title="لقاح"><Syringe className="w-4 h-4 text-green-500" /></span>)
+    if (item.isStrategic) badges.push(<span key="s" title="استراتيجي"><Shield className="w-4 h-4 text-amber-500" /></span>)
     return badges
   }
 

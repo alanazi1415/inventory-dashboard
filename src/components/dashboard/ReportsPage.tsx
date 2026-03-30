@@ -15,6 +15,7 @@ export function ReportsPage({ system }: ReportsPageProps) {
     { title: 'تقرير البنود قاربت على الانتهاء', desc: 'ستنتهي صلاحيتها خلال 90 يوم', count: stats?.expiringItems || 0 },
     { title: 'تقرير البنود المنقذة للحياة', desc: 'البنود المصنفة كمنقذة للحياة', count: stats?.lifeSavingItems || 0 },
     { title: 'تقرير اللقاحات', desc: 'جميع اللقاحات في المخزون', count: stats?.vaccineItems || 0 },
+    { title: 'تقرير البنود الاستراتيجية', desc: 'البنود المصنفة كاستراتيجية', count: stats?.strategicItems || 0 },
   ]
   return (
     <div className="p-6 space-y-6">
