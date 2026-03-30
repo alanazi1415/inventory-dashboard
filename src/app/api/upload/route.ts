@@ -79,6 +79,14 @@ export async function POST(request: NextRequest) {
       // Delete old data for this system
       await db.inventoryItem.deleteMany({ where: { system } })
 
+      // التحقق من وجود عمود isStrategic وإضافته إذا لم يكن موجوداً
+      try {
+        await db.$executeRaw`SELECT "isStrategic" FROM "InventoryItem" LIMIT 1`
+      } catch {
+        console.log('Adding isStrategic column...')
+        await db.$executeRaw`ALTER TABLE "InventoryItem" ADD COLUMN IF NOT EXISTS "isStrategic" BOOLEAN NOT NULL DEFAULT false`
+      }
+
       // Get special items lists
       const [lifeSaving, narcotic, vaccine, strategic] = await Promise.all([
         db.lifeSavingItem.findMany().catch(() => []),

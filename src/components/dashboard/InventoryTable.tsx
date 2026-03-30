@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, ChevronLeft, ChevronRight, Heart, Ban, AlertTriangle, Syringe, Shield } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Heart, Ban, AlertTriangle, Syringe, Shield, Download } from "lucide-react"
 
 interface InventoryItem {
   id: string
@@ -35,6 +35,7 @@ interface InventoryTableProps {
 export function InventoryTable({ system, category = 'all' }: InventoryTableProps) {
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -67,6 +68,28 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
   const handleSearch = () => {
     setPage(1)
     fetchItems()
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const response = await fetch(`/api/export?system=${system}&category=${category}`)
+      if (!response.ok) throw new Error('فشل التصدير')
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `تصدير_${category}_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Export error:', error)
+    } finally {
+      setExporting(false)
+    }
   }
 
   const getExpiryBadge = (days: number) => {
@@ -134,6 +157,10 @@ export function InventoryTable({ system, category = 'all' }: InventoryTableProps
             className="max-w-md"
           />
           <Button onClick={handleSearch}><Search className="w-4 h-4 ml-2" />بحث</Button>
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            <Download className="w-4 h-4 ml-2" />
+            {exporting ? 'جاري التصدير...' : 'تصدير Excel'}
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
