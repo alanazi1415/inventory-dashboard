@@ -10,6 +10,14 @@ export async function GET(request: NextRequest) {
     const system = searchParams.get('system') || 'hoz'
     const category = searchParams.get('category') || 'all'
 
+    // التحقق من وجود عمود isStrategic وإضافته إذا لم يكن موجوداً
+    try {
+      await db.$executeRaw`SELECT "isStrategic" FROM "InventoryItem" LIMIT 1`
+    } catch {
+      console.log('Adding isStrategic column...')
+      await db.$executeRaw`ALTER TABLE "InventoryItem" ADD COLUMN IF NOT EXISTS "isStrategic" BOOLEAN NOT NULL DEFAULT false`
+    }
+
     // Build where clause
     const where: any = { system }
 
